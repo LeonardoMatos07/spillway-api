@@ -5,18 +5,31 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from app.cache import PublicCacheDep
 from app.db import SessionDep
 from app.geo_schemas import (
+    GeoLine,
     GeoMeta,
     GeoPoint,
+    LineCollection,
+    LineFeature,
+    LineProperties,
     ReservoirCollection,
     ReservoirFeature,
     ReservoirProperties,
+    SubstationCollection,
+    SubstationFeature,
+    SubstationProperties,
 )
-from app.models import Reservoir, ReservoirDaily, StateMonthlyCurtailment
+from app.models import (
+    Reservoir,
+    ReservoirDaily,
+    StateMonthlyCurtailment,
+    Substation,
+    TransmissionLine,
+)
 from app.routers.curtailment import STATES, MonthQuery
 from app.schemas import (
     AggregateSource,
@@ -198,3 +211,145 @@ def geo_reservoirs(
 
 def _num(value: Decimal | None) -> float | None:
     return None if value is None else float(value)
+
+
+VoltageMin = Annotated[
+    float | None,
+    Query(ge=0, le=1000, description="Only equipment of at least this voltage (kV)."),
+]
+StateFilter = Annotated[str | None, Query(pattern=r"^[A-Za-z]{2}$")]
+
+GRID_COORDINATE_WARNING = (
+    "Posição das subestações como publicada pelo ONS; não é topografia nem levantamento."
+)
+LINES_WARNINGS = (
+    "Esquemático: cada linha é um segmento reto entre as duas subestações, não o traçado real "
+    "da linha.",
+    GRID_COORDINATE_WARNING,
+)
+
+
+def _grid_meta(warnings: tuple[str, ...], total: int, shown: int) -> GeoMeta:
+    return GeoMeta(
+        source_name="Operador Nacional do Sistema Elétrico (ONS), dados abertos",
+        source_url="https://dados.ons.org.br/",
+        license=ONS_LICENSE,
+        as_of=None,
+        updated_at=None,
+        warnings=list(warnings),
+        total=total,
+        omitted=total - shown,
+    )
+
+
+@router.get("/substations", response_model=SubstationCollection)
+def geo_substations(
+    session: SessionDep,
+    cache: PublicCacheDep,
+    voltage_min: VoltageMin = None,
+    state: StateFilter = None,
+) -> SubstationCollection:
+    """Current substations that have a position (one point per voltage level)."""
+
+    def load() -> SubstationCollection:
+        stmt = select(Substation).where(Substation.valid_to.is_(None))
+        if voltage_min is not None:
+            stmt = stmt.where(Substation.voltage_kv >= voltage_min)
+        if state is not None:
+            stmt = stmt.where(Substation.state == state.upper())
+        rows = session.scalars(stmt.order_by(Substation.voltage_kv.desc(), Substation.name)).all()
+        features = [
+            SubstationFeature(
+                geometry=GeoPoint(coordinates=(float(r.longitude), float(r.latitude))),
+                properties=SubstationProperties(
+                    station_id=r.station_id,
+                    substation_id=r.substation_id,
+                    name=r.name,
+                    voltage_kv=_num(r.voltage_kv),
+                    subsystem=r.subsystem,
+                    state=r.state,
+                    main_agent=r.main_agent,
+                ),
+            )
+            for r in rows
+            if r.latitude is not None and r.longitude is not None
+        ]
+        return SubstationCollection(
+            meta=_grid_meta((GRID_COORDINATE_WARNING,), len(rows), len(features)),
+            features=features,
+        )
+
+    return cache.get_or_set(load)
+
+
+@router.get("/lines", response_model=LineCollection)
+def geo_lines(
+    session: SessionDep,
+    cache: PublicCacheDep,
+    voltage_min: VoltageMin = None,
+    state: StateFilter = None,
+) -> LineCollection:
+    """Current transmission lines drawn as straight segments between their two substations."""
+
+    def load() -> LineCollection:
+        positions: dict[tuple[str, str | None], set[tuple[float, float]]] = {}
+        by_name: dict[str, set[tuple[float, float]]] = {}
+        for sub in session.scalars(
+            select(Substation).where(
+                Substation.valid_to.is_(None),
+                Substation.latitude.is_not(None),
+                Substation.longitude.is_not(None),
+            )
+        ):
+            if sub.name is None or sub.latitude is None or sub.longitude is None:
+                continue
+            point = (float(sub.longitude), float(sub.latitude))
+            positions.setdefault((sub.name, sub.state), set()).add(point)
+            by_name.setdefault(sub.name, set()).add(point)
+
+        def locate(name: str | None, end_state: str | None) -> tuple[float, float] | None:
+            """The one position of the substation; no guess when two places share the name."""
+            if name is None:
+                return None
+            options = positions.get((name, end_state)) if end_state else None
+            if options is None:
+                options = by_name.get(name, set())
+            return next(iter(options)) if len(options) == 1 else None
+
+        stmt = select(TransmissionLine).where(TransmissionLine.valid_to.is_(None))
+        if voltage_min is not None:
+            stmt = stmt.where(TransmissionLine.voltage_kv >= voltage_min)
+        if state is not None:
+            up = state.upper()
+            stmt = stmt.where(
+                or_(TransmissionLine.from_state == up, TransmissionLine.to_state == up)
+            )
+        rows = session.scalars(
+            stmt.order_by(TransmissionLine.voltage_kv.desc(), TransmissionLine.equipment_code)
+        ).all()
+        features: list[LineFeature] = []
+        for r in rows:
+            start = locate(r.from_substation, r.from_state)
+            end = locate(r.to_substation, r.to_state)
+            if start is None or end is None or start == end:
+                continue
+            features.append(
+                LineFeature(
+                    geometry=GeoLine(coordinates=[start, end]),
+                    properties=LineProperties(
+                        equipment_code=r.equipment_code,
+                        name=r.name,
+                        voltage_kv=_num(r.voltage_kv),
+                        length_km=_num(r.length_km),
+                        from_substation=r.from_substation,
+                        to_substation=r.to_substation,
+                        from_state=r.from_state,
+                        to_state=r.to_state,
+                    ),
+                )
+            )
+        return LineCollection(
+            meta=_grid_meta(LINES_WARNINGS, len(rows), len(features)), features=features
+        )
+
+    return cache.get_or_set(load)
