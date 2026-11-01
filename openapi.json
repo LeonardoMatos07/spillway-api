@@ -1309,6 +1309,140 @@
         }
       }
     },
+    "/v1/flag/rule": {
+      "get": {
+        "tags": [
+          "flag"
+        ],
+        "summary": "Flag Rule",
+        "description": "Constants and formulas of the rule, plus the latest month, for the browser simulator.",
+        "operationId": "flag_rule_v1_flag_rule_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagRuleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/flag/months": {
+      "get": {
+        "tags": [
+          "flag"
+        ],
+        "summary": "Flag Months",
+        "description": "Month by month: PLD limits, GH, GF, GSF, PLD trigger, bands and flag (from the bulletins).",
+        "operationId": "flag_months_v1_flag_months_get",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagMonthsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/flag/forecast": {
+      "get": {
+        "tags": [
+          "flag"
+        ],
+        "summary": "Flag Forecast",
+        "description": "Latest ready run of each published lead for the newest target month.",
+        "operationId": "flag_forecast_v1_flag_forecast_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagForecastResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/flag/scoreboard": {
+      "get": {
+        "tags": [
+          "flag"
+        ],
+        "summary": "Flag Scoreboard",
+        "description": "Forecast against the flag announced, per run and per lead. Rows are never rewritten.",
+        "operationId": "flag_scoreboard_v1_flag_scoreboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagScoreboardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/forecast": {
       "get": {
         "tags": [
@@ -6453,6 +6587,741 @@
         ],
         "title": "EventsAccepted"
       },
+      "FlagAttribution": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "legal_note": {
+            "type": "string",
+            "title": "Legal Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "sources",
+          "legal_note"
+        ],
+        "title": "FlagAttribution",
+        "description": "Where the numbers come from. The CCEE bulletins are never hosted, only numeric facts."
+      },
+      "FlagForecastResponse": {
+        "properties": {
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "target_month": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Month"
+          },
+          "official_flag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Flag"
+          },
+          "latest_official_month": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Official Month"
+          },
+          "latest_official_flag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Official Flag"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/FlagForecastRunOut"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/FlagAttribution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "published",
+          "target_month",
+          "official_flag",
+          "latest_official_month",
+          "latest_official_flag",
+          "runs",
+          "notice",
+          "disclaimer",
+          "attribution"
+        ],
+        "title": "FlagForecastResponse",
+        "description": "`published` is false until at least one lead passed the publication criterion."
+      },
+      "FlagForecastRunOut": {
+        "properties": {
+          "lead_days": {
+            "type": "integer",
+            "title": "Lead Days"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "data_through": {
+            "type": "string",
+            "format": "date",
+            "title": "Data Through"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version"
+          },
+          "trigger_p10_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger P10 Brl Per Mwh"
+          },
+          "trigger_p50_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger P50 Brl Per Mwh"
+          },
+          "trigger_p90_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger P90 Brl Per Mwh"
+          },
+          "probabilities": {
+            "items": {
+              "$ref": "#/components/schemas/FlagProbability"
+            },
+            "type": "array",
+            "title": "Probabilities"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_days",
+          "generated_at",
+          "data_through",
+          "model_version",
+          "rule_version",
+          "trigger_p10_brl_per_mwh",
+          "trigger_p50_brl_per_mwh",
+          "trigger_p90_brl_per_mwh",
+          "probabilities"
+        ],
+        "title": "FlagForecastRunOut"
+      },
+      "FlagGfomStep": {
+        "properties": {
+          "up_to_mwm": {
+            "type": "number",
+            "title": "Up To Mwm"
+          },
+          "flag": {
+            "type": "string",
+            "enum": [
+              "Verde",
+              "Amarela",
+              "Vermelha P1",
+              "Vermelha P2"
+            ],
+            "title": "Flag"
+          }
+        },
+        "type": "object",
+        "required": [
+          "up_to_mwm",
+          "flag"
+        ],
+        "title": "FlagGfomStep"
+      },
+      "FlagGfomTable": {
+        "properties": {
+          "original": {
+            "type": "string",
+            "enum": [
+              "Verde",
+              "Amarela",
+              "Vermelha P1",
+              "Vermelha P2"
+            ],
+            "title": "Original"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/FlagGfomStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "original",
+          "steps"
+        ],
+        "title": "FlagGfomTable"
+      },
+      "FlagMonth": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "rule_version": {
+            "type": "string",
+            "title": "Rule Version"
+          },
+          "pld_min_brl_per_mwh": {
+            "type": "number",
+            "title": "Pld Min Brl Per Mwh"
+          },
+          "pld_max_brl_per_mwh": {
+            "type": "number",
+            "title": "Pld Max Brl Per Mwh"
+          },
+          "gh_mwmed": {
+            "type": "number",
+            "title": "Gh Mwmed"
+          },
+          "gf_mwmed": {
+            "type": "number",
+            "title": "Gf Mwmed"
+          },
+          "gsf": {
+            "type": "number",
+            "title": "Gsf"
+          },
+          "pld_trigger_brl_per_mwh": {
+            "type": "number",
+            "title": "Pld Trigger Brl Per Mwh"
+          },
+          "gfom_mwmed": {
+            "type": "number",
+            "title": "Gfom Mwmed"
+          },
+          "green_upper_brl_per_mwh": {
+            "type": "number",
+            "title": "Green Upper Brl Per Mwh"
+          },
+          "yellow_upper_brl_per_mwh": {
+            "type": "number",
+            "title": "Yellow Upper Brl Per Mwh"
+          },
+          "red1_upper_brl_per_mwh": {
+            "type": "number",
+            "title": "Red1 Upper Brl Per Mwh"
+          },
+          "flag": {
+            "type": "string",
+            "title": "Flag"
+          },
+          "bulletin_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bulletin Number"
+          },
+          "bulletin_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bulletin Url"
+          },
+          "bulletin_published_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bulletin Published On"
+          },
+          "revised_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revised On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "rule_version",
+          "pld_min_brl_per_mwh",
+          "pld_max_brl_per_mwh",
+          "gh_mwmed",
+          "gf_mwmed",
+          "gsf",
+          "pld_trigger_brl_per_mwh",
+          "gfom_mwmed",
+          "green_upper_brl_per_mwh",
+          "yellow_upper_brl_per_mwh",
+          "red1_upper_brl_per_mwh",
+          "flag",
+          "bulletin_number",
+          "bulletin_url",
+          "bulletin_published_on",
+          "revised_on"
+        ],
+        "title": "FlagMonth"
+      },
+      "FlagMonthsResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FlagMonth"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/FlagAttribution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "attribution"
+        ],
+        "title": "FlagMonthsResponse"
+      },
+      "FlagProbability": {
+        "properties": {
+          "flag": {
+            "type": "string",
+            "enum": [
+              "Verde",
+              "Amarela",
+              "Vermelha P1",
+              "Vermelha P2"
+            ],
+            "title": "Flag"
+          },
+          "prob": {
+            "type": "number",
+            "title": "Prob"
+          },
+          "band_lower_brl_per_mwh": {
+            "type": "number",
+            "title": "Band Lower Brl Per Mwh"
+          },
+          "band_upper_brl_per_mwh": {
+            "type": "number",
+            "title": "Band Upper Brl Per Mwh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flag",
+          "prob",
+          "band_lower_brl_per_mwh",
+          "band_upper_brl_per_mwh"
+        ],
+        "title": "FlagProbability"
+      },
+      "FlagRuleResponse": {
+        "properties": {
+          "formula": {
+            "type": "string",
+            "title": "Formula"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/FlagRuleVersion"
+            },
+            "type": "array",
+            "title": "Versions"
+          },
+          "gfom": {
+            "items": {
+              "$ref": "#/components/schemas/FlagGfomTable"
+            },
+            "type": "array",
+            "title": "Gfom"
+          },
+          "latest_month": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Month"
+          },
+          "latest_rule_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Rule Version"
+          },
+          "pld_min_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pld Min Brl Per Mwh"
+          },
+          "pld_max_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pld Max Brl Per Mwh"
+          },
+          "gsf": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gsf"
+          },
+          "pld_trigger_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pld Trigger Brl Per Mwh"
+          },
+          "flag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flag"
+          },
+          "green_upper_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Green Upper Brl Per Mwh"
+          },
+          "yellow_upper_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yellow Upper Brl Per Mwh"
+          },
+          "red1_upper_brl_per_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Red1 Upper Brl Per Mwh"
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/FlagAttribution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "formula",
+          "versions",
+          "gfom",
+          "latest_month",
+          "latest_rule_version",
+          "pld_min_brl_per_mwh",
+          "pld_max_brl_per_mwh",
+          "gsf",
+          "pld_trigger_brl_per_mwh",
+          "flag",
+          "green_upper_brl_per_mwh",
+          "yellow_upper_brl_per_mwh",
+          "red1_upper_brl_per_mwh",
+          "attribution"
+        ],
+        "title": "FlagRuleResponse",
+        "description": "Everything the browser simulator needs: constants, formulas and the latest month."
+      },
+      "FlagRuleVersion": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lim_green": {
+            "type": "number",
+            "title": "Lim Green"
+          },
+          "lim_yellow": {
+            "type": "number",
+            "title": "Lim Yellow"
+          },
+          "lim_red1": {
+            "type": "number",
+            "title": "Lim Red1"
+          },
+          "gfom": {
+            "type": "boolean",
+            "title": "Gfom"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "lim_green",
+          "lim_yellow",
+          "lim_red1",
+          "gfom",
+          "effective_from",
+          "status"
+        ],
+        "title": "FlagRuleVersion"
+      },
+      "FlagScoreItem": {
+        "properties": {
+          "target_month": {
+            "type": "string",
+            "format": "date",
+            "title": "Target Month"
+          },
+          "lead_days": {
+            "type": "integer",
+            "title": "Lead Days"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "actual_flag": {
+            "type": "string",
+            "enum": [
+              "Verde",
+              "Amarela",
+              "Vermelha P1",
+              "Vermelha P2"
+            ],
+            "title": "Actual Flag"
+          },
+          "prob_actual": {
+            "type": "number",
+            "title": "Prob Actual"
+          },
+          "brier": {
+            "type": "number",
+            "title": "Brier"
+          },
+          "top_hit": {
+            "type": "boolean",
+            "title": "Top Hit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_month",
+          "lead_days",
+          "generated_at",
+          "actual_flag",
+          "prob_actual",
+          "brier",
+          "top_hit"
+        ],
+        "title": "FlagScoreItem"
+      },
+      "FlagScoreSummary": {
+        "properties": {
+          "lead_days": {
+            "type": "integer",
+            "title": "Lead Days"
+          },
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "mean_brier": {
+            "type": "number",
+            "title": "Mean Brier"
+          },
+          "hit_rate": {
+            "type": "number",
+            "title": "Hit Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lead_days",
+          "n",
+          "mean_brier",
+          "hit_rate"
+        ],
+        "title": "FlagScoreSummary"
+      },
+      "FlagScoreboardResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FlagScoreItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "summary": {
+            "items": {
+              "$ref": "#/components/schemas/FlagScoreSummary"
+            },
+            "type": "array",
+            "title": "Summary"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "summary",
+          "notice"
+        ],
+        "title": "FlagScoreboardResponse"
+      },
       "ForecastModelResponse": {
         "properties": {
           "model_version": {
@@ -11594,7 +12463,8 @@
                 "forecast",
                 "news",
                 "market",
-                "reliability"
+                "reliability",
+                "flag"
               ]
             },
             "type": "array",
@@ -11616,7 +12486,8 @@
                 "forecast",
                 "news",
                 "market",
-                "reliability"
+                "reliability",
+                "flag"
               ]
             },
             "type": "array",

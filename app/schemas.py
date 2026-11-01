@@ -22,7 +22,7 @@ AggregateSource = Literal["wind", "solar", "total"]
 Kind = Literal["plant", "cluster"]
 SubsystemOrSin = Literal["N", "NE", "S", "SE", "SIN"]
 RevalidateTag = Literal[
-    "curtailment", "plants", "reports", "forecast", "news", "market", "reliability"
+    "curtailment", "plants", "reports", "forecast", "news", "market", "reliability", "flag"
 ]
 ALL_TAGS: list[RevalidateTag] = [
     "curtailment",
@@ -32,6 +32,7 @@ ALL_TAGS: list[RevalidateTag] = [
     "news",
     "market",
     "reliability",
+    "flag",
 ]
 
 
