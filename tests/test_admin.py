@@ -239,7 +239,16 @@ def test_revalidate_default_tags(
     client: TestClient, admin_headers: dict[str, str], web_calls: list[httpx.Request]
 ) -> None:
     r = client.post(REVALIDATE, headers=admin_headers)
-    all_tags = ["curtailment", "plants", "reports", "forecast", "news", "market", "reliability"]
+    all_tags = [
+        "curtailment",
+        "plants",
+        "reports",
+        "forecast",
+        "news",
+        "market",
+        "reliability",
+        "flag",
+    ]
     assert r.json()["tags"] == all_tags
     assert json.loads(web_calls[0].content) == {"tags": all_tags}
 

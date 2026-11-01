@@ -448,6 +448,10 @@ Written by `spillway-data`, read by the API. Their sources are seeded in `data_s
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | GET | `/v1/tariffs/flags?from=&to=` | Public | `{"source", "items": [{"month", "flag", "additional_brl_per_mwh"}]}` |
+| GET | `/v1/flag/rule` | Public | Constantes e fórmulas da regra da bandeira (versões B e C, tabela GFOM) e o último mês, para o simulador no navegador. Tag de cache `flag` |
+| GET | `/v1/flag/months?from=&to=` | Public | `{"items": [{"month", "rule_version", "pld_min/max_brl_per_mwh", "gh_mwmed", "gf_mwmed", "gsf", "pld_trigger_brl_per_mwh", "gfom_mwmed", "green/yellow/red1_upper_brl_per_mwh", "flag", "bulletin_number", "bulletin_url", ...}], "attribution"}` (fatos numéricos dos boletins CCEE) |
+| GET | `/v1/flag/forecast` | Public | `{"published", "target_month", "official_flag", "runs": [{"lead_days", "generated_at", "data_through", "model_version", "probabilities": [{"flag", "prob", "band_*"}]}], "notice", "disclaimer"}`. Só runs com `status = ready`; `published: false` até algum prazo passar no critério |
+| GET | `/v1/flag/scoreboard` | Public | `{"items": [{"target_month", "lead_days", "actual_flag", "prob_actual", "brier", "top_hit"}], "summary": [{"lead_days", "n", "mean_brier", "hit_rate"}]}` |
 | GET | `/v1/market/consumption` | Public | `{"source", "consumption": [{"month", "regulated_mw_avg", "free_mw_avg", "free_share_pct"}], "agents": [...]}` |
 
 Both use the `market` cache tag.
