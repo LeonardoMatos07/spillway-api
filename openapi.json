@@ -3304,6 +3304,97 @@
         }
       }
     },
+    "/v1/geo/plants": {
+      "get": {
+        "tags": [
+          "geo"
+        ],
+        "summary": "Geo Plants",
+        "description": "Wind and solar plants with a position, and their curtailment in one month.",
+        "operationId": "geo_plants_v1_geo_plants_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "2026-09"
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "wind",
+                    "solar"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z]{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlantGeoCollection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/market/pld": {
       "get": {
         "tags": [
@@ -9242,6 +9333,198 @@
         ],
         "title": "PlantGenerationResponse"
       },
+      "PlantGeoCollection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/GeoMeta"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/PlantGeoFeature"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "unlocated": {
+            "items": {
+              "$ref": "#/components/schemas/UnlocatedPlant"
+            },
+            "type": "array",
+            "title": "Unlocated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta",
+          "features",
+          "unlocated"
+        ],
+        "title": "PlantGeoCollection"
+      },
+      "PlantGeoFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/PlantGeoProperties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "title": "PlantGeoFeature"
+      },
+      "PlantGeoProperties": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "wind",
+              "solar"
+            ],
+            "title": "Source"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "subsystem": {
+            "type": "string",
+            "title": "Subsystem"
+          },
+          "capacity_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Mw"
+          },
+          "connection_point": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Point"
+          },
+          "location_precision": {
+            "type": "string",
+            "enum": [
+              "substation",
+              "official"
+            ],
+            "title": "Location Precision"
+          },
+          "matched_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched On"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month"
+          },
+          "curtailed_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curtailed Mwh"
+          },
+          "curtailment_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curtailment Pct"
+          },
+          "estimated_loss_brl": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Loss Brl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "source",
+          "state",
+          "subsystem",
+          "capacity_mw",
+          "connection_point",
+          "location_precision",
+          "matched_on",
+          "month",
+          "curtailed_mwh",
+          "curtailment_pct",
+          "estimated_loss_brl"
+        ],
+        "title": "PlantGeoProperties"
+      },
       "PlantListResponse": {
         "properties": {
           "items": {
@@ -12724,6 +13007,80 @@
           "items"
         ],
         "title": "TransmissionLineListResponse"
+      },
+      "UnlocatedPlant": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "wind",
+              "solar"
+            ],
+            "title": "Source"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "capacity_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Mw"
+          },
+          "connection_point": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Point"
+          },
+          "curtailed_mwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curtailed Mwh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "source",
+          "state",
+          "capacity_mw",
+          "connection_point",
+          "curtailed_mwh"
+        ],
+        "title": "UnlocatedPlant",
+        "description": "A plant with no position: it is not a feature, but the map lists it."
       },
       "UnsubscribedResponse": {
         "properties": {

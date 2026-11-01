@@ -78,6 +78,35 @@ class Plant(Base):
 Index("ix_plant_name_lower", func.lower(Plant.name))
 
 
+class PlantLocation(Base):
+    """Where a plant is drawn on the map and how good that position is.
+
+    ``substation``: the coordinate of the substation the plant connects to (matched on name and
+    state; never on the name alone), so it is approximate. ``official``: a point published by the
+    regulator, reserved for later. Written by the data pipeline, read by the API.
+    """
+
+    __tablename__ = "plant_location"
+    __table_args__ = (
+        CheckConstraint(
+            "location_precision IN ('substation', 'official')", name="location_precision"
+        ),
+        CheckConstraint(
+            "latitude BETWEEN -34 AND 6 AND longitude BETWEEN -74 AND -34", name="inside_brazil"
+        ),
+    )
+
+    plant_id: Mapped[str] = mapped_column(
+        Text, ForeignKey("plant.id", ondelete="CASCADE"), primary_key=True
+    )
+    latitude: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)
+    longitude: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)
+    location_precision: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    matched_on: Mapped[str | None] = mapped_column(Text)
+    updated_at: Mapped[datetime] = _now_default()
+
+
 class PlantMonthlyCurtailment(Base):
     __tablename__ = "plant_monthly_curtailment"
     __table_args__ = (

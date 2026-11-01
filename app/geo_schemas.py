@@ -99,3 +99,48 @@ class LineCollection(BaseModel):
     type: Literal["FeatureCollection"] = "FeatureCollection"
     meta: GeoMeta
     features: list[LineFeature]
+
+
+class PlantGeoProperties(BaseModel):
+    id: str
+    slug: str
+    name: str
+    source: Literal["wind", "solar"]
+    state: str
+    subsystem: str
+    capacity_mw: float | None
+    connection_point: str | None
+    # "substation": position of the substation it connects to (approximate); "official": a point
+    # published by the regulator.
+    location_precision: Literal["substation", "official"]
+    matched_on: str | None
+    month: date | None
+    curtailed_mwh: float | None
+    curtailment_pct: float | None
+    estimated_loss_brl: float | None
+
+
+class PlantGeoFeature(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    geometry: GeoPoint
+    properties: PlantGeoProperties
+
+
+class UnlocatedPlant(BaseModel):
+    """A plant with no position: it is not a feature, but the map lists it."""
+
+    id: str
+    slug: str
+    name: str
+    source: Literal["wind", "solar"]
+    state: str
+    capacity_mw: float | None
+    connection_point: str | None
+    curtailed_mwh: float | None
+
+
+class PlantGeoCollection(BaseModel):
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    meta: GeoMeta
+    features: list[PlantGeoFeature]
+    unlocated: list[UnlocatedPlant]

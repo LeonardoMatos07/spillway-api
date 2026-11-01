@@ -16,20 +16,28 @@ from app.geo_schemas import (
     LineCollection,
     LineFeature,
     LineProperties,
+    PlantGeoCollection,
+    PlantGeoFeature,
+    PlantGeoProperties,
     ReservoirCollection,
     ReservoirFeature,
     ReservoirProperties,
     SubstationCollection,
     SubstationFeature,
     SubstationProperties,
+    UnlocatedPlant,
 )
 from app.models import (
+    Plant,
+    PlantLocation,
+    PlantMonthlyCurtailment,
     Reservoir,
     ReservoirDaily,
     StateMonthlyCurtailment,
     Substation,
     TransmissionLine,
 )
+from app.queries import latest_plant_month
 from app.routers.curtailment import STATES, MonthQuery
 from app.schemas import (
     AggregateSource,
@@ -350,6 +358,104 @@ def geo_lines(
             )
         return LineCollection(
             meta=_grid_meta(LINES_WARNINGS, len(rows), len(features)), features=features
+        )
+
+    return cache.get_or_set(load)
+
+
+PLANT_WARNINGS = (
+    "Posição aproximada pela subestação de conexão (casada pelo nome e pela UF), não o ponto da "
+    "usina: várias usinas da mesma subestação aparecem no mesmo lugar.",
+    "Usinas sem subestação identificada não têm posição e ficam fora do mapa; estão na lista "
+    "'sem localização'.",
+)
+
+
+@router.get("/plants", response_model=PlantGeoCollection)
+def geo_plants(
+    session: SessionDep,
+    cache: PublicCacheDep,
+    month: MonthQuery = None,
+    source: Annotated[Literal["wind", "solar"] | None, Query()] = None,
+    state: StateFilter = None,
+) -> PlantGeoCollection:
+    """Wind and solar plants with a position, and their curtailment in one month."""
+    up = state.upper() if state else None
+    if up is not None and up not in STATES:
+        raise HTTPException(status_code=404, detail="State not found.")
+
+    def load() -> PlantGeoCollection:
+        chosen = parse_month(month) if month is not None else latest_plant_month(session)
+        stmt = (
+            select(Plant, PlantLocation, PlantMonthlyCurtailment)
+            .outerjoin(PlantLocation, PlantLocation.plant_id == Plant.id)
+            .outerjoin(
+                PlantMonthlyCurtailment,
+                (PlantMonthlyCurtailment.plant_id == Plant.id)
+                & (PlantMonthlyCurtailment.month == chosen),
+            )
+            .where(Plant.kind == "plant")
+            .order_by(Plant.name)
+        )
+        if source is not None:
+            stmt = stmt.where(Plant.source == source)
+        if up is not None:
+            stmt = stmt.where(Plant.state == up)
+        features: list[PlantGeoFeature] = []
+        unlocated: list[UnlocatedPlant] = []
+        total = 0
+        for plant, location, metrics in session.execute(stmt).all():
+            total += 1
+            if location is None:
+                unlocated.append(
+                    UnlocatedPlant(
+                        id=plant.id,
+                        slug=plant.slug,
+                        name=plant.name,
+                        source=plant.source,
+                        state=plant.state,
+                        capacity_mw=_num(plant.capacity_mw),
+                        connection_point=plant.connection_point,
+                        curtailed_mwh=_num(metrics.curtailed_mwh) if metrics else None,
+                    )
+                )
+                continue
+            features.append(
+                PlantGeoFeature(
+                    geometry=GeoPoint(
+                        coordinates=(float(location.longitude), float(location.latitude))
+                    ),
+                    properties=PlantGeoProperties(
+                        id=plant.id,
+                        slug=plant.slug,
+                        name=plant.name,
+                        source=plant.source,
+                        state=plant.state,
+                        subsystem=plant.subsystem,
+                        capacity_mw=_num(plant.capacity_mw),
+                        connection_point=plant.connection_point,
+                        location_precision=location.location_precision,
+                        matched_on=location.matched_on,
+                        month=chosen if metrics else None,
+                        curtailed_mwh=_num(metrics.curtailed_mwh) if metrics else None,
+                        curtailment_pct=_num(metrics.curtailment_pct) if metrics else None,
+                        estimated_loss_brl=_num(metrics.estimated_loss_brl) if metrics else None,
+                    ),
+                )
+            )
+        return PlantGeoCollection(
+            meta=GeoMeta(
+                source_name="Operador Nacional do Sistema Elétrico (ONS), dados abertos",
+                source_url="https://dados.ons.org.br/",
+                license=ONS_LICENSE,
+                as_of=chosen,
+                updated_at=None,
+                warnings=list(PLANT_WARNINGS),
+                total=total,
+                omitted=len(unlocated),
+            ),
+            features=features,
+            unlocated=unlocated,
         )
 
     return cache.get_or_set(load)
