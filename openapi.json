@@ -3162,6 +3162,148 @@
         }
       }
     },
+    "/v1/geo/substations": {
+      "get": {
+        "tags": [
+          "geo"
+        ],
+        "summary": "Geo Substations",
+        "description": "Current substations that have a position (one point per voltage level).",
+        "operationId": "geo_substations_v1_geo_substations_get",
+        "parameters": [
+          {
+            "name": "voltage_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 1000,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only equipment of at least this voltage (kV).",
+              "title": "Voltage Min"
+            },
+            "description": "Only equipment of at least this voltage (kV)."
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z]{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubstationCollection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/geo/lines": {
+      "get": {
+        "tags": [
+          "geo"
+        ],
+        "summary": "Geo Lines",
+        "description": "Current transmission lines drawn as straight segments between their two substations.",
+        "operationId": "geo_lines_v1_geo_lines_get",
+        "parameters": [
+          {
+            "name": "voltage_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 1000,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only equipment of at least this voltage (kV).",
+              "title": "Voltage Min"
+            },
+            "description": "Only equipment of at least this voltage (kV)."
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z]{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineCollection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/market/pld": {
       "get": {
         "tags": [
@@ -6449,6 +6591,38 @@
         ],
         "title": "FunnelStep"
       },
+      "GeoLine": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "LineString",
+            "title": "Type",
+            "default": "LineString"
+          },
+          "coordinates": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Coordinates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "coordinates"
+        ],
+        "title": "GeoLine"
+      },
       "GeoMeta": {
         "properties": {
           "source_name": {
@@ -7341,6 +7515,157 @@
           "total"
         ],
         "title": "LeadListResponse"
+      },
+      "LineCollection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/GeoMeta"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/LineFeature"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta",
+          "features"
+        ],
+        "title": "LineCollection"
+      },
+      "LineFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoLine"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/LineProperties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "title": "LineFeature"
+      },
+      "LineProperties": {
+        "properties": {
+          "equipment_code": {
+            "type": "string",
+            "title": "Equipment Code"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "voltage_kv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voltage Kv"
+          },
+          "length_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Length Km"
+          },
+          "from_substation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Substation"
+          },
+          "to_substation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Substation"
+          },
+          "from_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From State"
+          },
+          "to_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To State"
+          },
+          "geometry_kind": {
+            "type": "string",
+            "const": "schematic",
+            "title": "Geometry Kind",
+            "default": "schematic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "equipment_code",
+          "name",
+          "voltage_kv",
+          "length_km",
+          "from_substation",
+          "to_substation",
+          "from_state",
+          "to_state"
+        ],
+        "title": "LineProperties"
       },
       "LoadRun": {
         "properties": {
@@ -11356,6 +11681,54 @@
         ],
         "title": "StateCurtailmentResponse"
       },
+      "SubstationCollection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/GeoMeta"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/SubstationFeature"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta",
+          "features"
+        ],
+        "title": "SubstationCollection"
+      },
+      "SubstationFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/SubstationProperties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "title": "SubstationFeature"
+      },
       "SubstationItem": {
         "properties": {
           "valid_from": {
@@ -11539,6 +11912,91 @@
           "items"
         ],
         "title": "SubstationListResponse"
+      },
+      "SubstationProperties": {
+        "properties": {
+          "station_id": {
+            "type": "string",
+            "title": "Station Id"
+          },
+          "substation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Substation Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "voltage_kv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voltage Kv"
+          },
+          "subsystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subsystem"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "main_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Main Agent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "station_id",
+          "substation_id",
+          "name",
+          "voltage_kv",
+          "subsystem",
+          "state",
+          "main_agent"
+        ],
+        "title": "SubstationProperties"
       },
       "SubsystemCurtailment": {
         "properties": {

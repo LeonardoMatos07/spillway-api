@@ -47,3 +47,55 @@ class ReservoirCollection(BaseModel):
     type: Literal["FeatureCollection"] = "FeatureCollection"
     meta: GeoMeta
     features: list[ReservoirFeature]
+
+
+class GeoLine(BaseModel):
+    type: Literal["LineString"] = "LineString"
+    coordinates: list[tuple[float, float]]  # longitude, latitude
+
+
+class SubstationProperties(BaseModel):
+    station_id: str
+    substation_id: str | None
+    name: str | None
+    voltage_kv: float | None
+    subsystem: str | None
+    state: str | None
+    main_agent: str | None
+
+
+class SubstationFeature(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    geometry: GeoPoint
+    properties: SubstationProperties
+
+
+class SubstationCollection(BaseModel):
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    meta: GeoMeta
+    features: list[SubstationFeature]
+
+
+class LineProperties(BaseModel):
+    equipment_code: str
+    name: str | None
+    voltage_kv: float | None
+    length_km: float | None
+    from_substation: str | None
+    to_substation: str | None
+    from_state: str | None
+    to_state: str | None
+    # Always "schematic": a straight segment between the two substations, not the real route.
+    geometry_kind: Literal["schematic"] = "schematic"
+
+
+class LineFeature(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    geometry: GeoLine
+    properties: LineProperties
+
+
+class LineCollection(BaseModel):
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    meta: GeoMeta
+    features: list[LineFeature]
