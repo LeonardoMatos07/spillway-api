@@ -1,4 +1,4 @@
-"""GeoJSON envelopes of the map layers: FeatureCollection + `meta` (source, license, date, notes)."""
+"""GeoJSON envelopes of the map layers: FeatureCollection plus `meta` (source, license, notes)."""
 
 from datetime import date, datetime
 from typing import Literal
