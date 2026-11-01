@@ -3369,6 +3369,25 @@
               ],
               "title": "State"
             }
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "One plant, by slug.",
+              "title": "Slug"
+            },
+            "description": "One plant, by slug."
           }
         ],
         "responses": {

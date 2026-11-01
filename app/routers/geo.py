@@ -378,6 +378,7 @@ def geo_plants(
     month: MonthQuery = None,
     source: Annotated[Literal["wind", "solar"] | None, Query()] = None,
     state: StateFilter = None,
+    slug: Annotated[str | None, Query(max_length=120, description="One plant, by slug.")] = None,
 ) -> PlantGeoCollection:
     """Wind and solar plants with a position, and their curtailment in one month."""
     up = state.upper() if state else None
@@ -401,6 +402,8 @@ def geo_plants(
             stmt = stmt.where(Plant.source == source)
         if up is not None:
             stmt = stmt.where(Plant.state == up)
+        if slug is not None:
+            stmt = stmt.where(Plant.slug == slug)
         features: list[PlantGeoFeature] = []
         unlocated: list[UnlocatedPlant] = []
         total = 0

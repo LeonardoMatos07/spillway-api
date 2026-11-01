@@ -86,3 +86,13 @@ def test_plants_bad_input(client: TestClient) -> None:
     assert client.get("/v1/geo/plants", params={"month": "2026-13"}).status_code == 422
     assert client.get("/v1/geo/plants", params={"state": "XX"}).status_code == 404
     assert client.get("/v1/geo/plants", params={"source": "coal"}).status_code == 422
+
+
+def test_plants_one_by_slug(client: TestClient) -> None:
+    body = client.get("/v1/geo/plants", params={"slug": "alpha-i-bau1"}).json()
+    assert [f["properties"]["id"] for f in body["features"]] == ["BAU1"]
+    assert body["unlocated"] == []
+    body = client.get("/v1/geo/plants", params={"slug": "alpha-ii-bau2"}).json()
+    assert body["features"] == [] and [p["id"] for p in body["unlocated"]] == ["BAU2"]
+    body = client.get("/v1/geo/plants", params={"slug": "nao-existe"}).json()
+    assert body["features"] == [] and body["unlocated"] == [] and body["meta"]["total"] == 0
