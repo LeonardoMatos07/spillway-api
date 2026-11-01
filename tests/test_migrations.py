@@ -11,6 +11,7 @@ pytestmark = pytest.mark.skipif(
 
 TABLES = {
     "plant",
+    "plant_location",
     "plant_monthly_curtailment",
     "state_monthly_curtailment",
     "subsystem_monthly_curtailment",

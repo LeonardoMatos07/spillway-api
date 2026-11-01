@@ -293,6 +293,7 @@ out as `YYYY-MM`.
 | GET | `/v1/geo/reservoirs?date=&subsystem=` | Public | GeoJSON `FeatureCollection` of reservoirs that have a position (Point `[lon, lat]`), `properties` {slug, name, plant_name, subsystem, basin, river, useful_volume_hm3, storage_pct, ena_storable_pct_mlt, day} for `date` (default the latest day with data), plus `meta` {source_name, source_url, license, as_of, updated_at, warnings, total, omitted}; reservoirs without coordinates are not features and are counted in `meta.omitted`. 404 when the day has no data |
 | GET | `/v1/geo/substations?voltage_min=&state=` | Public | GeoJSON `FeatureCollection` of the current substations that have a position (Point `[lon, lat]`; one per voltage level), highest voltage first; `properties` {station_id, substation_id, name, voltage_kv, subsystem, state, main_agent}; `meta` as in `/v1/geo/reservoirs` (`omitted` = without coordinates) |
 | GET | `/v1/geo/lines?voltage_min=&state=` | Public | GeoJSON `FeatureCollection` of the current lines as a straight `LineString` between the two substations (`geometry_kind` is always `schematic`: not the real route); an end is found by name and state, and a line is left out (`meta.omitted`) when an end has no position or the name points to two places. `state` matches either end |
+| GET | `/v1/geo/plants?month=&source=&state=&slug=` | Public | GeoJSON `FeatureCollection` of wind and solar plants (`kind = plant`) that have a row in `plant_location` (Point `[lon, lat]`), `properties` {id, slug, name, source, state, subsystem, capacity_mw, connection_point, location_precision (`substation` = approximate, the substation it connects to; `official` = a regulator point), matched_on, month, curtailed_mwh, curtailment_pct, estimated_loss_brl} for `month` (default the latest with data); `unlocated` lists the plants with no position (they are not features; `meta.omitted` counts them). 404 for an unknown `state`, 422 on a malformed month or source |
 | GET | `/v1/system/balance?subsystem=&from=&to=` | Public | `{"date_from", "date_to", "points": [subsystem_hourly_balance row]}`, hourly, at most 31 days (422 above); `from`/`to` as `YYYY-MM-DD`, default the last 7 days with data |
 | GET | `/v1/system/generation?subsystem=&from=&to=` | Public | `{"points": [subsystem_monthly_generation row]}`; `subsystem` defaults to `SIN`; `from`/`to` as `YYYY-MM`, default the last 12 months |
 | GET | `/v1/system/interchange?origin=&destination=&scope=&from=&to=` | Public | `{"points": [interchange_monthly row]}`; `from`/`to` as `YYYY-MM`, default the last 12 months |
@@ -450,3 +451,14 @@ Written by `spillway-data`, read by the API. Their sources are seeded in `data_s
 | GET | `/v1/market/consumption` | Public | `{"source", "consumption": [{"month", "regulated_mw_avg", "free_mw_avg", "free_share_pct"}], "agents": [...]}` |
 
 Both use the `market` cache tag.
+
+
+## Plant position (`plant_location`)
+
+`plant_location(plant_id PK -> plant.id, latitude, longitude, location_precision, source, matched_on, updated_at)`.
+Written only by the data pipeline (`spillway-data`, task `plant_location`), read by the API.
+`location_precision = 'substation'`: the coordinate of the substation named in `plant.connection_point`,
+matched on the normalised name **and** the state (a name alone is never matched: two substations in
+different states can share it); `matched_on` records the substation used. `'official'` is reserved for
+a point published by the regulator, which would replace the substation position. A plant without a
+match has no row; the map lists it as "sem localização".
