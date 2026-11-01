@@ -3086,6 +3086,82 @@
         }
       }
     },
+    "/v1/geo/reservoirs": {
+      "get": {
+        "tags": [
+          "geo"
+        ],
+        "summary": "Geo Reservoirs",
+        "description": "Reservoirs with a position and the storage of one day (default the latest with data).",
+        "operationId": "geo_reservoirs_v1_geo_reservoirs_get",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "2026-09-30"
+              ],
+              "title": "Date"
+            }
+          },
+          {
+            "name": "subsystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "N",
+                    "NE",
+                    "S",
+                    "SE"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subsystem"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservoirCollection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/market/pld": {
       "get": {
         "tags": [
@@ -6372,6 +6448,103 @@
           "count"
         ],
         "title": "FunnelStep"
+      },
+      "GeoMeta": {
+        "properties": {
+          "source_name": {
+            "type": "string",
+            "title": "Source Name"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          },
+          "license": {
+            "type": "string",
+            "title": "License"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "omitted": {
+            "type": "integer",
+            "title": "Omitted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_name",
+          "source_url",
+          "license",
+          "as_of",
+          "updated_at",
+          "warnings",
+          "total",
+          "omitted"
+        ],
+        "title": "GeoMeta",
+        "description": "Where a layer comes from. `omitted` counts the rows left out because they lack a position."
+      },
+      "GeoPoint": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Point",
+            "title": "Type",
+            "default": "Point"
+          },
+          "coordinates": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Coordinates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "coordinates"
+        ],
+        "title": "GeoPoint"
       },
       "GeoStateCurtailment": {
         "properties": {
@@ -9967,6 +10140,32 @@
         ],
         "title": "ReportSummary"
       },
+      "ReservoirCollection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "FeatureCollection",
+            "title": "Type",
+            "default": "FeatureCollection"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/GeoMeta"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/ReservoirFeature"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meta",
+          "features"
+        ],
+        "title": "ReservoirCollection"
+      },
       "ReservoirDailyPoint": {
         "properties": {
           "day": {
@@ -10193,6 +10392,28 @@
         ],
         "title": "ReservoirDetailResponse"
       },
+      "ReservoirFeature": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "Feature",
+            "title": "Type",
+            "default": "Feature"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/ReservoirProperties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "title": "ReservoirFeature"
+      },
       "ReservoirInfo": {
         "properties": {
           "id": {
@@ -10401,6 +10622,121 @@
           "items"
         ],
         "title": "ReservoirListResponse"
+      },
+      "ReservoirProperties": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "plant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plant Name"
+          },
+          "subsystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subsystem"
+          },
+          "basin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basin"
+          },
+          "river": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "River"
+          },
+          "useful_volume_hm3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useful Volume Hm3"
+          },
+          "storage_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Pct"
+          },
+          "ena_storable_pct_mlt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ena Storable Pct Mlt"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "plant_name",
+          "subsystem",
+          "basin",
+          "river",
+          "useful_volume_hm3",
+          "storage_pct",
+          "ena_storable_pct_mlt",
+          "day"
+        ],
+        "title": "ReservoirProperties"
       },
       "ReservoirSummary": {
         "properties": {
