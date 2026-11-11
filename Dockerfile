@@ -1,4 +1,4 @@
-FROM python:3.12.14-slim-trixie AS build
+FROM python:3.12.15-slim-trixie AS build
 
 COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /usr/local/bin/uv
 
@@ -10,7 +10,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-FROM python:3.12.14-slim-trixie
+FROM python:3.12.15-slim-trixie
 
 RUN apt-get update     && apt-get upgrade -y --no-install-recommends     && rm -rf /var/lib/apt/lists/*
 
